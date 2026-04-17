@@ -2,7 +2,6 @@ export default async function handler(req, res) {
   const { code } = req.query;
 
   try {
-    // 1. Обмениваем код на токен
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       body: new URLSearchParams({
@@ -22,14 +21,20 @@ export default async function handler(req, res) {
       throw new Error('Не удалось получить access_token');
     }
 
-    // 2. Получаем данные пользователя
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const userData = await userResponse.json();
 
-    // 3. Редиректим обратно на сайт
-    res.redirect(`/?id=${userData.id}&nick=${userData.username}`);
+    // Формируем URL аватара
+    let avatarUrl = null;
+    if (userData.avatar) {
+      avatarUrl = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`;
+    }
+
+    // Передаем аватар в параметрах
+    const avatarParam = avatarUrl ? `&avatar=${encodeURIComponent(avatarUrl)}` : '';
+    res.redirect(`/?id=${userData.id}&nick=${userData.username}${avatarParam}`);
   } catch (error) {
     console.error('Ошибка авторизации:', error);
     res.status(500).send('Ошибка авторизации через Discord');
