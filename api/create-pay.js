@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       webhookUrl: `https://${req.headers.host}/api/webhook`
     });
 
-    const response = await fetch('https://spworlds.ru/api/public/payments', {
+    const response = await fetch(Buffer.from('https://spworlds.ru/api/public/payments').toString('base64'), {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${process.env.SP_AUTH}`,
