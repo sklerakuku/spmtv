@@ -1,50 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Оплата АР</title>
+    <meta charset="UTF-8">
+    <title>Оплата SPWorlds</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 50px; }
-        .card { border: 1px solid #ccc; padding: 20px; border-radius: 8px; width: 300px; }
-        input { width: 100%; margin: 10px 0; padding: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #5865F2; color: white; border: none; cursor: pointer; }
+        body { font-family: sans-serif; background: #2c2f33; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #23272a; padding: 30px; border-radius: 12px; width: 320px; text-align: center; }
+        .btn { display: block; width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; text-decoration: none; }
+        .btn-discord { background: #5865f2; color: white; }
+        .btn-pay { background: #43b581; color: white; display: none; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; background: #40444b; color: white; box-sizing: border-box; display: none; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <input type="text" id="discordId" placeholder="Введите Discord ID">
-        <button onclick="checkUser()">Найти ник</button>
-        <p id="nickDisplay"></p>
-        
-        <div id="paySection" style="display:none">
-            <input type="number" id="amount" placeholder="Сумма в АР">
-            <button onclick="pay()" style="background: #2ecc71;">Оплатить</button>
-        </div>
+
+<div class="container">
+    <h2>Оплата АР</h2>
+    <div id="status">Нужна авторизация</div>
+    
+    <a href="/api/auth/login" id="loginBtn" class="btn btn-discord">Войти через Discord</a>
+    
+    <div id="userBlock" style="display:none">
+        <p>Привет, <strong id="userName"></strong>!</p>
+        <input type="number" id="amount" placeholder="Сумма в АР">
+        <button onclick="startPay()" class="btn btn-pay" id="payBtn">Оплатить</button>
     </div>
+</div>
 
-    <script>
-        async function checkUser() {
-            const id = document.getElementById('discordId').value;
-            const res = await fetch(`/api/get-user?id=${id}`);
-            const data = await res.json();
-            if (data.username) {
-                document.getElementById('nickDisplay').innerText = "Ник: " + data.username;
-                document.getElementById('paySection').style.display = "block";
-            } else {
-                alert("Пользователь не найден");
-            }
-        }
+<script>
+    // Проверяем параметры в URL после логина
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    const userNick = urlParams.get('nick');
 
-        async function pay() {
-            const amount = document.getElementById('amount').value;
-            const discordId = document.getElementById('discordId').value;
-            const res = await fetch('/api/create-pay', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ amount, discordId })
-            });
-            const data = await res.json();
-            window.location.href = data.url; // Уходим на оплату
-        }
-    </script>
+    if (userId && userNick) {
+        document.getElementById('status').style.display = 'none';
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('userBlock').style.display = 'block';
+        document.getElementById('userName').innerText = userNick;
+        document.getElementById('amount').style.display = 'block';
+        document.getElementById('payBtn').style.display = 'block';
+    }
+
+    async function startPay() {
+        const amount = document.getElementById('amount').value;
+        const res = await fetch('/api/create-pay', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ amount, discordId: userId })
+        });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+    }
+</script>
+
 </body>
 </html>
