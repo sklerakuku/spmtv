@@ -215,7 +215,7 @@
 <body>
 
 <div class="container">
-    <h2>Поддержка SPMTV</h2>
+    <h2>SPMTV</h2>
     
     <div id="statusBlock">
         <div class="status">
@@ -227,7 +227,6 @@
     </div>
     
     <div id="userBlock" style="display:none">
-        <!-- Discord -->
         <div class="user-row">
             <img id="discordAvatar" class="user-avatar" src="" alt="DC">
             <div class="user-info">
@@ -236,7 +235,6 @@
             </div>
         </div>
         
-        <!-- Minecraft -->
         <div class="user-row">
             <img id="minecraftAvatar" class="user-avatar" src="" alt="MC">
             <div class="user-info">
@@ -250,7 +248,7 @@
         <form id="supportForm" onsubmit="return false;">
             <div class="form-group">
                 <label>
-                    Ваш вопрос или предложение 
+                    Предложите ваш вопрос для шоу СУИ 
                     <span class="optional">необязательно</span>
                 </label>
                 <textarea id="question" placeholder="Опишите вашу идею..."></textarea>
@@ -258,16 +256,16 @@
             
             <div class="form-group">
                 <label>
-                    Категория
+                    К какой категории относится этот вопрос
                     <span class="optional">необязательно</span>
                 </label>
-                <input type="text" id="category" placeholder="Например: Идея, Баг, Вопрос...">
+                <input type="text" id="category" placeholder="Например: История СПм, Города...">
             </div>
             
             <div class="radio-group">
                 <div class="radio-item">
                     <input type="radio" id="registerParticipant" name="supportType" value="participant" checked>
-                    <label for="registerParticipant">Зарегистрироваться как участник и задать вопрос</label>
+                    <label for="registerParticipant">Зарегистрироваться как участник</label>
                 </div>
                 <div class="radio-item">
                     <input type="radio" id="justSupport" name="supportType" value="support">
@@ -415,7 +413,7 @@
             };
             localStorage.setItem('supportFormData', JSON.stringify(formData));
             
-            // Отправляем запрос на наш API
+            // Пробуем через наш API
             const res = await fetch('/api/create-pay', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -427,14 +425,6 @@
             });
             
             const data = await res.json();
-            
-            if (!res.ok) {
-                // Если ошибка капчи, предлагаем альтернативу
-                if (data.details && data.details.includes('капчу')) {
-                    throw new Error('Сервис оплаты временно недоступен. Попробуйте позже.');
-                }
-                throw new Error(data.details || 'Ошибка создания платежа');
-            }
             
             if (data.url) {
                 window.location.href = data.url;
