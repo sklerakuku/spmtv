@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Поддержка SPMTV</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -210,6 +211,12 @@
             border-top: 1px solid #333;
             margin: 20px 0;
         }
+
+        .cf-turnstile {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -279,6 +286,9 @@
                 <div class="hint">от 1 до 10000 АР</div>
                 <div class="error" id="amountError">Введите сумму от 1 до 10000</div>
             </div>
+
+            <!-- Cloudflare Turnstile -->
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAAC--ZgaedkGnmpN3"></div>
             
             <button type="submit" onclick="startPay()" class="btn btn-primary" id="payBtn">
                 Продолжить
@@ -302,8 +312,6 @@
         if (avatar) {
             return `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=64`;
         }
-        // Дефолтный аватар по дискриминатору
-        const discriminator = '0000'; // Discord убрал дискриминаторы, используем 0
         return `https://cdn.discordapp.com/embed/avatars/${parseInt(id) % 5}.png`;
     }
 
@@ -317,14 +325,11 @@
                 minecraftUsername = data.username;
                 document.getElementById('minecraftName').textContent = data.username;
                 
-                // Загружаем аватар Minecraft
                 const uuid = data.uuid;
                 if (uuid) {
-                    // Используем crafatar для аватара
                     document.getElementById('minecraftAvatar').src = 
                         `https://crafatar.com/avatars/${uuid}?size=48&overlay`;
                 } else {
-                    // Если нет UUID, пробуем получить через ник
                     try {
                         const mojangRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${data.username}`);
                         const mojangData = await mojangRes.json();
@@ -354,13 +359,11 @@
             'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\'%3E%3Crect width=\'48\' height=\'48\' fill=\'%23333\'/%3E%3Ctext x=\'24\' y=\'28\' text-anchor=\'middle\' fill=\'%23666\' font-size=\'12\'%3E?%3C/text%3E%3C/svg%3E';
     }
 
-    // При авторизации:
     if (userId && userNick) {
         document.getElementById('statusBlock').style.display = 'none';
         document.getElementById('userBlock').style.display = 'block';
         document.getElementById('userName').textContent = userNick;
         
-        // Устанавливаем аватар Discord
         if (avatarUrl) {
             document.getElementById('discordAvatar').src = avatarUrl;
         } else {
@@ -370,7 +373,7 @@
         
         fetchMinecraftData(userId);
     }
-    // Валидация суммы
+
     function validateAmount(amount) {
         const num = parseInt(amount);
         return num >= 1 && num <= 10000;
@@ -381,7 +384,6 @@
         error.style.display = validateAmount(e.target.value) ? 'none' : 'block';
     });
 
-    // Оплата
     async function startPay() {
         const amount = document.getElementById('amount').value;
         const payBtn = document.getElementById('payBtn');
@@ -393,6 +395,13 @@
         }
         error.style.display = 'none';
         
+        // Получаем токен Turnstile
+        const turnstileResponse = turnstile.getResponse();
+        if (!turnstileResponse) {
+            alert('Пожалуйста, пройдите проверку капчи');
+            return;
+        }
+        
         const question = document.getElementById('question').value;
         const category = document.getElementById('category').value;
         const supportType = document.querySelector('input[name="supportType"]:checked').value;
@@ -401,7 +410,6 @@
         payBtn.textContent = 'Создание платежа...';
         
         try {
-            // Сохраняем данные
             const formData = {
                 question,
                 category,
@@ -413,18 +421,22 @@
             };
             localStorage.setItem('supportFormData', JSON.stringify(formData));
             
-            // Пробуем через наш API
             const res = await fetch('/api/create-pay', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     amount, 
                     discordId: userId,
+                    turnstileToken: turnstileResponse,
                     metadata: { question, category, supportType }
                 })
             });
             
             const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.error || 'Ошибка создания платежа');
+            }
             
             if (data.url) {
                 window.location.href = data.url;
@@ -435,6 +447,7 @@
             alert('Ошибка: ' + error.message);
             payBtn.disabled = false;
             payBtn.textContent = 'Продолжить';
+            turnstile.reset();
         }
     }
 </script>
