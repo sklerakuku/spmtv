@@ -403,6 +403,7 @@
         payBtn.textContent = 'Создание платежа...';
         
         try {
+            // Сохраняем данные
             const formData = {
                 question,
                 category,
@@ -414,6 +415,7 @@
             };
             localStorage.setItem('supportFormData', JSON.stringify(formData));
             
+            // Отправляем запрос на наш API
             const res = await fetch('/api/create-pay', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -426,11 +428,18 @@
             
             const data = await res.json();
             
-            if (!res.ok) throw new Error(data.details || 'Ошибка');
+            if (!res.ok) {
+                // Если ошибка капчи, предлагаем альтернативу
+                if (data.details && data.details.includes('капчу')) {
+                    throw new Error('Сервис оплаты временно недоступен. Попробуйте позже.');
+                }
+                throw new Error(data.details || 'Ошибка создания платежа');
+            }
+            
             if (data.url) {
                 window.location.href = data.url;
             } else {
-                throw new Error('Нет URL для оплаты');
+                throw new Error('Не получен URL для оплаты');
             }
         } catch (error) {
             alert('Ошибка: ' + error.message);
